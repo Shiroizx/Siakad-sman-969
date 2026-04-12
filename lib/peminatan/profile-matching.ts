@@ -13,6 +13,13 @@ export type JurusanIdeal = {
   kriteria: IdealKriteria[];
 };
 
+/** Profil ideal generik (MIPA/IPS/Bahasa) untuk engine matching. */
+export type ProfilIdealLintasan = {
+  kode: string;
+  namaPanjang: string;
+  kriteria: IdealKriteria[];
+};
+
 /** Profil ideal per jurusan — dipakai engine matching (bukan Server Action). */
 export const PROFIL_IDEAL: Record<"MIPA" | "IPS", JurusanIdeal> = {
   MIPA: {
@@ -65,6 +72,62 @@ export const PROFIL_IDEAL: Record<"MIPA" | "IPS", JurusanIdeal> = {
   },
 };
 
+/**
+ * Dua lintasan jurusan Bahasa (selaras rombel X Bahasa 1 vs X Bahasa 2 di sekolah):
+ * — Bahasa 1: humaniora / sastra (Bindo & Sejarah lebih menonjol).
+ * — Bahasa 2: komunikasi & wawasan sosial (Bing & IPS lebih menonjol).
+ */
+export const PROFIL_BAHASA: Record<"BAHASA_1" | "BAHASA_2", ProfilIdealLintasan> = {
+  BAHASA_1: {
+    kode: "BAHASA_1",
+    namaPanjang: "Jurusan Bahasa — Rombel 1 (humaniora & sastra)",
+    kriteria: [
+      {
+        label: "Bahasa Indonesia",
+        matchNames: ["Bahasa Indonesia"],
+        target: 82,
+        tipe: "Core",
+      },
+      {
+        label: "Sejarah",
+        matchNames: ["Sejarah"],
+        target: 80,
+        tipe: "Core",
+      },
+      {
+        label: "Bahasa Inggris",
+        matchNames: ["Bahasa Inggris", "Bahasa Inggris Wajib", "English"],
+        target: 76,
+        tipe: "Secondary",
+      },
+    ],
+  },
+  BAHASA_2: {
+    kode: "BAHASA_2",
+    namaPanjang: "Jurusan Bahasa — Rombel 2 (komunikasi & wawasan sosial)",
+    kriteria: [
+      {
+        label: "Bahasa Inggris",
+        matchNames: ["Bahasa Inggris", "Bahasa Inggris Wajib", "English"],
+        target: 82,
+        tipe: "Core",
+      },
+      {
+        label: "IPS / Ekonomi / Sosiologi",
+        matchNames: ["IPS", "Ekonomi", "Sosiologi"],
+        target: 78,
+        tipe: "Core",
+      },
+      {
+        label: "Bahasa Indonesia",
+        matchNames: ["Bahasa Indonesia"],
+        target: 78,
+        tipe: "Secondary",
+      },
+    ],
+  },
+};
+
 export type DetailMapelMatch = {
   label: string;
   tipe: FaktorTipe;
@@ -75,8 +138,8 @@ export type DetailMapelMatch = {
   bobot: number;
 };
 
-export type HasilJurusan = {
-  kode: "MIPA" | "IPS";
+export type HasilProfilJurusan = {
+  kode: string;
   namaPanjang: string;
   ncf: number;
   nsf: number;
@@ -84,6 +147,8 @@ export type HasilJurusan = {
   persentaseKecocokan: number;
   detail: DetailMapelMatch[];
 };
+
+export type HasilJurusan = HasilProfilJurusan & { kode: "MIPA" | "IPS" };
 
 function normMapel(s: string) {
   return s.trim().toLowerCase();
@@ -125,10 +190,10 @@ function nilaiSiswaUntukKriteria(
   };
 }
 
-function hitungSatuJurusan(
-  jurusan: JurusanIdeal,
+function hitungSatuProfil(
+  jurusan: ProfilIdealLintasan,
   nilaiByMapel: Map<string, number>
-): HasilJurusan {
+): HasilProfilJurusan {
   const detail: DetailMapelMatch[] = [];
   const bobotCore: number[] = [];
   const bobotSecondary: number[] = [];
@@ -179,6 +244,13 @@ function hitungSatuJurusan(
   };
 }
 
+function hitungSatuJurusan(
+  jurusan: JurusanIdeal,
+  nilaiByMapel: Map<string, number>
+): HasilJurusan {
+  return hitungSatuProfil(jurusan, nilaiByMapel) as HasilJurusan;
+}
+
 export function computePeminatanResults(nilaiByMapel: Map<string, number>): {
   hasil: HasilJurusan[];
   rekomendasiUtama: "MIPA" | "IPS" | null;
@@ -187,5 +259,18 @@ export function computePeminatanResults(nilaiByMapel: Map<string, number>): {
   const ips = hitungSatuJurusan(PROFIL_IDEAL.IPS, nilaiByMapel);
   const hasil = [mipa, ips].sort((a, b) => b.nilaiTotal - a.nilaiTotal);
   const rekomendasiUtama = hasil.length > 0 ? hasil[0].kode : null;
+  return { hasil, rekomendasiUtama };
+}
+
+export function computePeminatanBahasa(nilaiByMapel: Map<string, number>): {
+  hasil: HasilProfilJurusan[];
+  rekomendasiUtama: "BAHASA_1" | "BAHASA_2" | null;
+} {
+  const b1 = hitungSatuProfil(PROFIL_BAHASA.BAHASA_1, nilaiByMapel);
+  const b2 = hitungSatuProfil(PROFIL_BAHASA.BAHASA_2, nilaiByMapel);
+  const hasil = [b1, b2].sort((a, b) => b.nilaiTotal - a.nilaiTotal);
+  const top = hasil[0]?.kode;
+  const rekomendasiUtama =
+    top === "BAHASA_1" || top === "BAHASA_2" ? top : null;
   return { hasil, rekomendasiUtama };
 }

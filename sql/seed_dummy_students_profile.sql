@@ -1,7 +1,7 @@
 -- =============================================================================
--- Dummy data untuk melengkapi kolom profil siswa (pribadi, kontak, ortu).
+-- Data contoh untuk melengkapi kolom profil siswa (pribadi, kontak, ortu).
 -- Jalankan di Supabase SQL Editor setelah kolom dari expand_students_and_rls.sql ada.
--- Sesuaikan NISN / nama dengan data riil Anda bila perlu.
+-- Sesuaikan NISN / nama dengan data sekolah Anda bila perlu.
 -- =============================================================================
 
 -- --- Lengkapi siswa seed (NISN yang dipakai di add_tanggal_lahir_students.sql) --
@@ -17,7 +17,7 @@ set
   no_hp = coalesce(nullif(trim(no_hp), ''), '0812' || right(nisn, 8)),
   email = coalesce(
     nullif(trim(lower(email)), ''),
-    'siswa.' || nisn || '@dummy.sman969.test'
+    'siswa.' || nisn || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(nama_ayah), ''), 'Budi Wijaya'),
   pekerjaan_ayah = coalesce(nullif(trim(pekerjaan_ayah), ''), 'PNS'),
@@ -38,7 +38,7 @@ set
   no_hp = coalesce(nullif(trim(no_hp), ''), '0821' || right(nisn, 8)),
   email = coalesce(
     nullif(trim(lower(email)), ''),
-    'siswa.' || nisn || '@dummy.sman969.test'
+    'siswa.' || nisn || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(nama_ayah), ''), 'Ahmad Hidayat'),
   pekerjaan_ayah = coalesce(nullif(trim(pekerjaan_ayah), ''), 'Wiraswasta'),
@@ -59,7 +59,7 @@ set
   no_hp = coalesce(nullif(trim(no_hp), ''), '0856' || right(nisn, 8)),
   email = coalesce(
     nullif(trim(lower(email)), ''),
-    'siswa.' || nisn || '@dummy.sman969.test'
+    'siswa.' || nisn || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(nama_ayah), ''), 'Eko Prasetyo'),
   pekerjaan_ayah = coalesce(nullif(trim(pekerjaan_ayah), ''), 'Teknisi'),
@@ -80,7 +80,7 @@ set
   no_hp = coalesce(nullif(trim(no_hp), ''), '0878' || right(nisn, 8)),
   email = coalesce(
     nullif(trim(lower(email)), ''),
-    'siswa.' || nisn || '@dummy.sman969.test'
+    'siswa.' || nisn || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(nama_ayah), ''), 'Hendra Gunawan'),
   pekerjaan_ayah = coalesce(nullif(trim(pekerjaan_ayah), ''), 'Polisi'),
@@ -101,7 +101,7 @@ set
   no_hp = coalesce(nullif(trim(no_hp), ''), '0811' || right(nisn, 8)),
   email = coalesce(
     nullif(trim(lower(email)), ''),
-    'siswa.' || nisn || '@dummy.sman969.test'
+    'siswa.' || nisn || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(nama_ayah), ''), 'Faisal Rahman'),
   pekerjaan_ayah = coalesce(nullif(trim(pekerjaan_ayah), ''), 'Pilot'),
@@ -118,12 +118,12 @@ set
   agama = coalesce(nullif(trim(agama), ''), 'Islam'),
   alamat = coalesce(
     nullif(trim(alamat), ''),
-    'Alamat lengkap siswa NISN ' || nisn || ' (dummy)'
+    'Jl. Pendidikan No. ' || right(regexp_replace(nisn, '\D', '', 'g'), 4) || ', Jakarta'
   ),
   no_hp = coalesce(nullif(trim(no_hp), ''), '08' || right(lpad(regexp_replace(nisn, '\D', '', 'g'), 10, '0'), 10)),
   email = coalesce(
     nullif(trim(lower(email)), ''),
-    'siswa.' || regexp_replace(nisn, '\D', '', 'g') || '@dummy.sman969.test'
+    'siswa.' || regexp_replace(nisn, '\D', '', 'g') || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(nama_ayah), ''), 'Ayah ' || left(coalesce(nama, 'Siswa'), 40)),
   pekerjaan_ayah = coalesce(nullif(trim(pekerjaan_ayah), ''), 'Karyawan Swasta'),
@@ -137,7 +137,7 @@ where
   coalesce(nullif(trim(no_hp), ''), '') = ''
   or coalesce(nullif(trim(alamat), ''), '') = '';
 
--- --- Siswa dummy BARU (hanya jika NISN belum ada; kelas = satu baris pertama) --
+-- --- Siswa contoh BARU (hanya jika NISN belum ada; kelas = satu baris pertama) --
 insert into public.students (
   nisn,
   nama,
@@ -158,7 +158,7 @@ insert into public.students (
 )
 select
   '0099887766',
-  'Dummy Satria Wibowo',
+  'Satria Wibowo',
   'L',
   (select id from public.kelas order by nama nulls last limit 1),
   date '2007-01-15',
@@ -167,7 +167,7 @@ select
   'Islam',
   'Jl. Margonda Raya No. 100, Depok',
   '089912345678',
-  'dummy.satria@dummy.sman969.test',
+  'satria.wibowo@siswa.sman969.sch.id',
   'Wibowo Santoso',
   'Arsitek',
   'Larasati Dewi',
@@ -195,7 +195,7 @@ insert into public.students (
 )
 select
   '0099887767',
-  'Dummy Citra Lestari',
+  'Citra Lestari',
   'P',
   (select id from public.kelas order by nama desc nulls last limit 1),
   date '2007-08-22',
@@ -204,7 +204,7 @@ select
   'Islam',
   'Perumahan Citra Garden Blok A/7, Tangerang',
   '089923456789',
-  'dummy.citra@dummy.sman969.test',
+  'citra.lestari@siswa.sman969.sch.id',
   'Lestari Hidayat',
   'Karyawan BUMN',
   'Citra Anggraini',

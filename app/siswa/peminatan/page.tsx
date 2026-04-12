@@ -6,7 +6,11 @@ import {
 } from "@/app/actions/peminatan";
 import type { PeminatanStudentOption } from "@/app/actions/peminatan";
 import { isSiswaUser } from "@/lib/auth/siswa";
-import type { HasilJurusan } from "@/lib/peminatan/profile-matching";
+import type {
+  DetailMapelMatch,
+  HasilJurusan,
+  HasilProfilJurusan,
+} from "@/lib/peminatan/profile-matching";
 import { createClient } from "@/utils/supabase/client";
 import { ChevronDown, Info, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -15,17 +19,35 @@ function barFillWidth(nilaiSiswa: number) {
   return Math.min(100, Math.max(0, Math.round(nilaiSiswa * 10) / 10));
 }
 
+const ACCENT_BAR: Record<
+  "violet" | "emerald" | "amber" | "rose",
+  string
+> = {
+  violet: "bg-gradient-to-r from-violet-500 to-fuchsia-500",
+  emerald: "bg-gradient-to-r from-emerald-500 to-teal-400",
+  amber: "bg-gradient-to-r from-amber-500 to-orange-500",
+  rose: "bg-gradient-to-r from-rose-500 to-pink-500",
+};
+
+const ACCENT_TARGET: Record<
+  "violet" | "emerald" | "amber" | "rose",
+  string
+> = {
+  violet: "text-violet-600 dark:text-violet-300",
+  emerald: "text-emerald-600 dark:text-emerald-300",
+  amber: "text-amber-700 dark:text-amber-300",
+  rose: "text-rose-600 dark:text-rose-300",
+};
+
 function MapelProgressRow(props: {
-  item: HasilJurusan["detail"][number];
-  accent: "violet" | "emerald";
+  item: DetailMapelMatch;
+  accent: "violet" | "emerald" | "amber" | "rose";
 }) {
   const { item, accent } = props;
   const fill = barFillWidth(item.nilaiSiswa);
   const targetPos = Math.min(100, Math.max(0, item.target));
-  const fillClass =
-    accent === "violet"
-      ? "bg-gradient-to-r from-violet-500 to-fuchsia-500"
-      : "bg-gradient-to-r from-emerald-500 to-teal-400";
+  const fillClass = ACCENT_BAR[accent];
+  const targetClass = ACCENT_TARGET[accent];
 
   return (
     <div className="rounded-xl bg-white/60 p-3 shadow-inner ring-1 ring-black/5 dark:bg-slate-900/50 dark:ring-white/10">
@@ -69,7 +91,7 @@ function MapelProgressRow(props: {
       <div className="mt-3">
         <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
           <span>0</span>
-          <span className="text-violet-600 dark:text-violet-300">
+          <span className={targetClass}>
             Target profil: {item.target}
           </span>
           <span>100</span>
@@ -100,6 +122,8 @@ function applyMatchResult(
     setNisn: (v: string | null) => void;
     setHasil: (v: HasilJurusan[]) => void;
     setUtama: (v: "MIPA" | "IPS" | null) => void;
+    setHasilBahasa: (v: HasilProfilJurusan[]) => void;
+    setUtamaBahasa: (v: "BAHASA_1" | "BAHASA_2" | null) => void;
     setAnalysisError: (v: string | null) => void;
   }
 ) {
@@ -107,6 +131,8 @@ function applyMatchResult(
     setters.setAnalysisError(res.error);
     setters.setHasil([]);
     setters.setUtama(null);
+    setters.setHasilBahasa([]);
+    setters.setUtamaBahasa(null);
     setters.setNama(res.studentNama);
     setters.setNisn(res.studentNisn);
   } else {
@@ -115,6 +141,8 @@ function applyMatchResult(
     setters.setNisn(res.studentNisn);
     setters.setHasil(res.hasil);
     setters.setUtama(res.rekomendasiUtama);
+    setters.setHasilBahasa(res.hasilBahasa);
+    setters.setUtamaBahasa(res.rekomendasiBahasaUtama);
   }
 }
 
@@ -132,6 +160,10 @@ export default function SiswaPeminatanPage() {
   const [nisn, setNisn] = useState<string | null>(null);
   const [hasil, setHasil] = useState<HasilJurusan[]>([]);
   const [utama, setUtama] = useState<"MIPA" | "IPS" | null>(null);
+  const [hasilBahasa, setHasilBahasa] = useState<HasilProfilJurusan[]>([]);
+  const [utamaBahasa, setUtamaBahasa] = useState<
+    "BAHASA_1" | "BAHASA_2" | null
+  >(null);
 
   const [authEmail, setAuthEmail] = useState<string | null>(null);
 
@@ -165,6 +197,8 @@ export default function SiswaPeminatanPage() {
           setNisn,
           setHasil,
           setUtama,
+          setHasilBahasa,
+          setUtamaBahasa,
           setAnalysisError,
         });
         setBootLoading(false);
@@ -199,6 +233,8 @@ export default function SiswaPeminatanPage() {
         setNisn,
         setHasil,
         setUtama,
+        setHasilBahasa,
+        setUtamaBahasa,
         setAnalysisError,
       });
       setBootLoading(false);
@@ -220,6 +256,8 @@ export default function SiswaPeminatanPage() {
         setNisn,
         setHasil,
         setUtama,
+        setHasilBahasa,
+        setUtamaBahasa,
         setAnalysisError,
       });
       setSwitchLoading(false);
@@ -229,6 +267,15 @@ export default function SiswaPeminatanPage() {
 
   const mipa = hasil.find((h) => h.kode === "MIPA");
   const ips = hasil.find((h) => h.kode === "IPS");
+  const bahasa1 = hasilBahasa.find((h) => h.kode === "BAHASA_1");
+  const bahasa2 = hasilBahasa.find((h) => h.kode === "BAHASA_2");
+
+  const judulBahasaUtama =
+    utamaBahasa === "BAHASA_1"
+      ? "Rombel Bahasa 1 (humaniora & sastra)"
+      : utamaBahasa === "BAHASA_2"
+        ? "Rombel Bahasa 2 (komunikasi & wawasan sosial)"
+        : null;
 
   const judulJurusan =
     utama === "MIPA"
@@ -300,8 +347,8 @@ export default function SiswaPeminatanPage() {
                 </p>
                 <p className="text-xs leading-relaxed text-indigo-900/90 dark:text-indigo-100/90">
                   Semua siswa diambil dari database. Ganti pilihan di dropdown
-                  untuk memuat ulang analisis MIPA vs IPS berdasarkan rapor siswa
-                  tersebut.
+                  untuk memuat ulang analisis MIPA vs IPS serta perbandingan
+                  jurusan Bahasa berdasarkan rapor siswa tersebut.
                 </p>
                 <p className="text-xs font-medium text-indigo-950/80 dark:text-indigo-100/80">
                   <span className="text-indigo-800/80 dark:text-indigo-300/90">
@@ -551,10 +598,157 @@ export default function SiswaPeminatanPage() {
               </div>
             </section>
 
+            <section className="mt-12">
+              <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Perbandingan jurusan Bahasa
+              </h2>
+              <p className="mx-auto mb-6 max-w-2xl text-center text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                Membandingkan pola nilai kelas X dengan dua profil lintasan{" "}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  Bahasa 1
+                </strong>{" "}
+                (humaniora & sastra) dan{" "}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  Bahasa 2
+                </strong>{" "}
+                (komunikasi & IPS ringan), selaras penamaan rombel{" "}
+                <span className="font-mono text-[11px]">X Bahasa 1</span> /{" "}
+                <span className="font-mono text-[11px]">X Bahasa 2</span> di sekolah.
+                Metode skor sama seperti MIPA vs IPS di bawah.
+              </p>
+              {judulBahasaUtama ? (
+                <p className="mb-6 text-center text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  Arah rombel Bahasa yang lebih cocok:{" "}
+                  <span className="text-amber-950 dark:text-amber-50">
+                    {judulBahasaUtama}
+                  </span>
+                </p>
+              ) : null}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {bahasa1 ? (
+                  <article className="group flex flex-col rounded-3xl border border-amber-200/80 bg-white/90 p-6 shadow-lg shadow-amber-100/50 transition hover:-translate-y-0.5 hover:shadow-xl dark:border-amber-900/40 dark:bg-slate-900/80 dark:shadow-none">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                          Bahasa 1
+                        </span>
+                        <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                          Humaniora & sastra
+                        </h3>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-semibold uppercase text-slate-400">
+                          Skor kecocokan
+                        </p>
+                        <p className="text-3xl font-black tabular-nums text-amber-600 dark:text-amber-400">
+                          {bahasa1.persentaseKecocokan.toFixed(0)}
+                          <span className="text-lg font-bold">%</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+                        <p className="font-medium text-slate-500 dark:text-slate-400">
+                          NCF (60%)
+                        </p>
+                        <p className="font-mono text-lg font-bold text-slate-900 dark:text-white">
+                          {bahasa1.ncf.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+                        <p className="font-medium text-slate-500 dark:text-slate-400">
+                          NSF (40%)
+                        </p>
+                        <p className="font-mono text-lg font-bold text-slate-900 dark:text-white">
+                          {bahasa1.nsf.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-700"
+                        style={{
+                          width: `${Math.min(100, bahasa1.persentaseKecocokan)}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="mt-5 flex flex-col gap-3">
+                      {bahasa1.detail.map((d, i) => (
+                        <MapelProgressRow
+                          key={`bahasa1-${i}-${d.label}`}
+                          item={d}
+                          accent="amber"
+                        />
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+
+                {bahasa2 ? (
+                  <article className="group flex flex-col rounded-3xl border border-rose-200/80 bg-white/90 p-6 shadow-lg shadow-rose-100/50 transition hover:-translate-y-0.5 hover:shadow-xl dark:border-rose-900/40 dark:bg-slate-900/80 dark:shadow-none">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-900 dark:bg-rose-950 dark:text-rose-200">
+                          Bahasa 2
+                        </span>
+                        <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                          Komunikasi & wawasan sosial
+                        </h3>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-semibold uppercase text-slate-400">
+                          Skor kecocokan
+                        </p>
+                        <p className="text-3xl font-black tabular-nums text-rose-600 dark:text-rose-400">
+                          {bahasa2.persentaseKecocokan.toFixed(0)}
+                          <span className="text-lg font-bold">%</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+                        <p className="font-medium text-slate-500 dark:text-slate-400">
+                          NCF (60%)
+                        </p>
+                        <p className="font-mono text-lg font-bold text-slate-900 dark:text-white">
+                          {bahasa2.ncf.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+                        <p className="font-medium text-slate-500 dark:text-slate-400">
+                          NSF (40%)
+                        </p>
+                        <p className="font-mono text-lg font-bold text-slate-900 dark:text-white">
+                          {bahasa2.nsf.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-700"
+                        style={{
+                          width: `${Math.min(100, bahasa2.persentaseKecocokan)}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="mt-5 flex flex-col gap-3">
+                      {bahasa2.detail.map((d, i) => (
+                        <MapelProgressRow
+                          key={`bahasa2-${i}-${d.label}`}
+                          item={d}
+                          accent="rose"
+                        />
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+              </div>
+            </section>
+
             <footer className="mt-12 text-center text-xs text-slate-500 dark:text-slate-500">
               Metode: gap → bobot (≥0: 4.5, 0: 5, negatif: 5+gap, min 0) · NCF &
               NSF rata-rata · total = 0.6×NCF + 0.4×NSF · persentase = total/5×
-              100.
+              100 (dipakai untuk MIPA/IPS dan perbandingan Bahasa).
             </footer>
           </>
         ) : null}

@@ -1,18 +1,22 @@
 -- =============================================================================
--- Dummy data menyeluruh (dev / demo): siswa, nilai, absensi, pelanggaran,
+-- Data contoh menyeluruh (dev / demo): siswa, nilai, absensi, pelanggaran,
 -- riwayat kelas, tahun ajaran kedua untuk arsip — mendukung fitur:
 --   akademik, kedisiplinan, EWS, arsip, clustering, peminatan, kenaikan kelas
 --
 -- Prasyarat (urut umum proyek):
 --   expand_students_and_rls.sql, migration_subjects_akademik_kedisiplinan.sql,
 --   migration_academic_years_archive.sql, migration_kelas_jurusan_rombel.sql,
+--   migration_students_peminatan_tingkat.sql,
 --   semester_absensi_pelanggaran.sql, migration_violation_academic_year.sql,
 --   add_hadir_attendance.sql, add_tanggal_lahir_students.sql
+--
+-- Untuk skenario "sekolah baru" (siswa kelas 10 belum rombel saja), pakai
+-- sql/seed_reset_siswa_kelas10_belum_rombel.sql alih-alih skrip ini.
 --
 -- Catatan: skrip ini memperbaiki unik absensi lama (hanya student_id) agar
 -- mendukung satu baris per semester per tahun ajaran — sama seperti migrasi resmi.
 --
--- Siswa dummy memakai NISN 9009690000–9009699999 (10 digit). Skrip ini
+-- Siswa contoh memakai NISN 9009690000–9009699999 (10 digit). Skrip ini
 -- MENGHAPUS bundel tersebut lalu mengisi ulang (idempoten aman untuk rentang ini).
 --
 -- Target: minimal 15 siswa per kelas (X/XI/XII × Bahasa/MIPA/IPS × rombel 1–5),
@@ -49,18 +53,22 @@ begin
   end if;
 end $$;
 
--- --- 0b) Tahun ajaran arsip demo (non-aktif) ----------------------------------
+-- --- 0b) Tahun ajaran arsip (non-aktif) ---------------------------------------
+update public.academic_years
+set nama = '2023/2024'
+where nama = '2023/2024 (dummy arsip)';
+
 insert into public.academic_years (nama, is_active)
-select '2023/2024 (dummy arsip)', false
+select '2023/2024', false
 where not exists (
-  select 1 from public.academic_years y where y.nama = '2023/2024 (dummy arsip)'
+  select 1 from public.academic_years y where y.nama = '2023/2024'
 );
 
 insert into public.academic_years (nama, is_active)
 select 'Arsip / Migrasi (default)', true
 where not exists (select 1 from public.academic_years where is_active = true);
 
--- --- 1) Hapus bundel dummy lama (NISN 900969xxxx) -----------------------------
+-- --- 1) Hapus bundel contoh lama (NISN 900969xxxx) ----------------------------
 delete from public.violation_records v
 using public.students s
 where v.student_id = s.id
@@ -141,7 +149,31 @@ insert into public.students (
 )
 select
   lpad((9009690000 + n.rn)::bigint::text, 10, '0'),
-  'Dummy ' || left(k.nama, 18) || ' #' || n.slot::text,
+  (
+    ARRAY[
+      'Muhammad Fauzi','Ahmad Rizki','Bagas Pratama','Bima Aditya','Dafa Ramadhan',
+      'Eko Wirawan','Fajar Nugroho','Gilang Saputra','Hendra Kusuma','Ibnu Santoso',
+      'Joko Prasetyo','Kevin Anggara','Luthfi Hakim','Mario Setiawan','Naufal Arifin',
+      'Oki Prasetya','Prasetyo Adi','Qori Sandria','Rizki Mahendra','Sandi Firmansyah',
+      'Teguh Wibisono','Umar Faisal','Wahyu Nugroho','Yoga Pratama','Zaki Firmansyah',
+      'Aldi Kurniawan','Bima Ramadan','Candra Wijaya','Doni Saputra','Edo Ferdinand',
+      'Fikri Ramadan','Gian Nugraha','Hadi Purnomo','Indra Kusuma','Jaya Kusuma',
+      'Kurniawan Wijaya','Leo Sanjaya','Maulana Iqbal','Nanda Pratama','Omar Hakim',
+      'Putra Ramadan','Reza Firmansyah','Sigit Prasetyo','Taufik Ramadhan','Udin Saputra',
+      'Viktor Nugraha','Wildan Mahendra','Yusuf Pratama','Zainal Abidin','Agung Wicaksono',
+      'Bayu Setiawan','Cahyo Nugroho','Dani Ramadhan','Egi Saputra','Fadli Permana'
+    ]
+  )[1 + ((n.rn - 1) % 50)]
+  || ' ' ||
+  (
+    ARRAY[
+      'Wijaya','Pratama','Santoso','Kusuma','Saputra','Nugroho','Ramadhan','Hidayat',
+      'Permana','Gunawan','Lestari','Maharani','Anggraini','Putri','Sari','Wulandari',
+      'Handayani','Rahayu','Cahyani','Puspita','Melati','Mulyani','Susanti','Utami',
+      'Yulianti','Zakiah','Amalia','Fitriani','Novitasari','Oktaviani','Permatasari',
+      'Wibowo','Kurniawan','Mahendra','Purnomo','Lestianto','Suryanto','Hakim','Fadillah'
+    ]
+  )[1 + ((n.rn * 11 + n.slot * 5) % 36)],
   case
     when n.rn % 2 = 0 then 'P'::public.jenis_kelamin
     else 'L'::public.jenis_kelamin
@@ -192,7 +224,7 @@ where s.nisn ~ '^900969[0-9]{4}$'
 with old_y as (
   select id as oy_id
   from public.academic_years
-  where nama = '2023/2024 (dummy arsip)'
+  where nama = '2023/2024'
   limit 1
 ),
 first_sub as (
@@ -288,7 +320,7 @@ select
   1,
   (select id from ay),
   10,
-  'Tidak memakai atribut lengkap (dummy seed)'
+  'Tidak memakai atribut lengkap'
 from public.students s
 where s.nisn ~ '^900969[0-9]{4}$'
   and (abs(hashtext(s.id::text)::bigint) % 4) = 0;
@@ -308,7 +340,7 @@ select
   2,
   (select id from ay),
   5,
-  'Terlambat masuk sekolah (dummy seed)'
+  'Terlambat masuk sekolah'
 from public.students s
 where s.nisn ~ '^900969[0-9]{4}$'
   and (abs(hashtext(s.id::text)::bigint) % 5) in (1, 2);
@@ -334,7 +366,7 @@ where s.nisn ~ '^900969[0-9]{4}$'
   );
 
 with old_y as (
-  select id from public.academic_years where nama = '2023/2024 (dummy arsip)' limit 1
+  select id from public.academic_years where nama = '2023/2024' limit 1
 )
 insert into public.class_histories (
   student_id,
@@ -370,7 +402,8 @@ set
   agama = coalesce(nullif(trim(s.agama), ''), 'Islam'),
   alamat = coalesce(
     nullif(trim(s.alamat), ''),
-    'Alamat dummy seed NISN ' || s.nisn
+    'Jl. Pendidikan No. ' || (abs(hashtext(s.nisn)::bigint) % 900 + 1)::text
+    || ', Jakarta'
   ),
   no_hp = coalesce(
     nullif(trim(s.no_hp), ''),
@@ -378,7 +411,7 @@ set
   ),
   email = coalesce(
     nullif(trim(lower(s.email)), ''),
-    'dummy.' || regexp_replace(s.nisn, '\D', '', 'g') || '@seed.sman969.test'
+    'siswa.' || regexp_replace(s.nisn, '\D', '', 'g') || '@siswa.sman969.sch.id'
   ),
   nama_ayah = coalesce(nullif(trim(s.nama_ayah), ''), 'Ayah ' || left(s.nama, 30)),
   pekerjaan_ayah = coalesce(nullif(trim(s.pekerjaan_ayah), ''), 'Karyawan'),

@@ -9,6 +9,8 @@ export default function SiswaArsipPage() {
   const [blocks, setBlocks] = useState<
     Awaited<ReturnType<typeof getMyArsipOverview>>["blocks"]
   >([]);
+  const [isAlumni, setIsAlumni] = useState(false);
+  const [angkatanLulus, setAngkatanLulus] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,9 +23,13 @@ export default function SiswaArsipPage() {
       if (res.error) {
         setErr(res.error);
         setBlocks([]);
+        setIsAlumni(false);
+        setAngkatanLulus(null);
       } else {
         setErr(null);
         setBlocks(res.blocks);
+        setIsAlumni(res.isAlumni);
+        setAngkatanLulus(res.angkatanLulus);
       }
     })();
     return () => {
@@ -47,6 +53,23 @@ export default function SiswaArsipPage() {
           dan Kedisiplinan; tahun lain tersimpan di sini.
         </p>
       </header>
+
+      {isAlumni ? (
+        <div
+          role="status"
+          className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-100"
+        >
+          Anda tercatat sebagai alumni
+          {angkatanLulus != null ? (
+            <>
+              {" "}
+              (angkatan lulus {angkatanLulus})
+            </>
+          ) : null}
+          . Ringkasan data kelulusan dan arsip setelah lulus tidak ditampilkan di
+          halaman ini; sekolah menyimpannya di menu admin Arsip alumni.
+        </div>
+      ) : null}
 
       {err ? (
         <div

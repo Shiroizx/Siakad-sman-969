@@ -1,8 +1,10 @@
 "use server";
 
 import {
+  computePeminatanBahasa,
   computePeminatanResults,
   type HasilJurusan,
+  type HasilProfilJurusan,
 } from "@/lib/peminatan/profile-matching";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
@@ -85,6 +87,8 @@ export async function calculateProfileMatching(studentId: string): Promise<{
   studentNisn: string | null;
   hasil: HasilJurusan[];
   rekomendasiUtama: "MIPA" | "IPS" | null;
+  hasilBahasa: HasilProfilJurusan[];
+  rekomendasiBahasaUtama: "BAHASA_1" | "BAHASA_2" | null;
   error: string | null;
 }> {
   const supabase = await createClient();
@@ -95,6 +99,8 @@ export async function calculateProfileMatching(studentId: string): Promise<{
       studentNisn: null,
       hasil: [],
       rekomendasiUtama: null,
+      hasilBahasa: [],
+      rekomendasiBahasaUtama: null,
       error: "Anda belum masuk.",
     };
   }
@@ -107,6 +113,8 @@ export async function calculateProfileMatching(studentId: string): Promise<{
         studentNisn: null,
         hasil: [],
         rekomendasiUtama: null,
+        hasilBahasa: [],
+        rekomendasiBahasaUtama: null,
         error: "Akses ditolak.",
       };
     }
@@ -124,6 +132,8 @@ export async function calculateProfileMatching(studentId: string): Promise<{
       studentNisn: null,
       hasil: [],
       rekomendasiUtama: null,
+      hasilBahasa: [],
+      rekomendasiBahasaUtama: null,
       error: siswaError.message,
     };
   }
@@ -134,6 +144,8 @@ export async function calculateProfileMatching(studentId: string): Promise<{
       studentNisn: null,
       hasil: [],
       rekomendasiUtama: null,
+      hasilBahasa: [],
+      rekomendasiBahasaUtama: null,
       error: "Siswa tidak ditemukan.",
     };
   }
@@ -149,6 +161,8 @@ export async function calculateProfileMatching(studentId: string): Promise<{
       studentNisn: String(siswa.nisn ?? ""),
       hasil: [],
       rekomendasiUtama: null,
+      hasilBahasa: [],
+      rekomendasiBahasaUtama: null,
       error: recError.message,
     };
   }
@@ -183,12 +197,16 @@ export async function calculateProfileMatching(studentId: string): Promise<{
   }
 
   const { hasil, rekomendasiUtama } = computePeminatanResults(nilaiByMapel);
+  const { hasil: hasilBahasa, rekomendasiUtama: rekomendasiBahasaUtama } =
+    computePeminatanBahasa(nilaiByMapel);
 
   return {
     studentNama: String(siswa.nama ?? ""),
     studentNisn: String(siswa.nisn ?? ""),
     hasil,
     rekomendasiUtama,
+    hasilBahasa,
+    rekomendasiBahasaUtama,
     error: null,
   };
 }

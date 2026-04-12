@@ -180,7 +180,12 @@ export function sortEwsRows<T extends EwsSortableRow>(
   return out;
 }
 
-export type ClusterSiswaSort = "nama-asc" | "nama-desc" | "nilai-desc" | "nisn-asc";
+export type ClusterSiswaSort =
+  | "nama-asc"
+  | "nama-desc"
+  | "nilai-desc"
+  | "nisn-asc"
+  | "skor-jurusan-desc";
 
 export function sortClusterStudents(
   list: StudentForClustering[],
@@ -188,6 +193,12 @@ export function sortClusterStudents(
 ): StudentForClustering[] {
   const out = [...list];
   out.sort((a, b) => {
+    if (mode === "skor-jurusan-desc") {
+      const sa = a.skorMapelJurusan ?? 0;
+      const sb = b.skorMapelJurusan ?? 0;
+      if (sb !== sa) return sb - sa;
+      return adminListCollator.compare(a.nama, b.nama);
+    }
     if (mode === "nilai-desc") {
       if (b.nilaiRata !== a.nilaiRata) return b.nilaiRata - a.nilaiRata;
       return adminListCollator.compare(a.nama, b.nama);

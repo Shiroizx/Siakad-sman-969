@@ -25,6 +25,8 @@ export type StudentRecord = {
   jenis_kelamin: string | null;
   kelas_id: string | null;
   kelas_nama: string | null;
+  is_alumni: boolean;
+  angkatan_lulus: number | null;
   user_id: string | null;
   nik: string | null;
   tempat_lahir: string | null;
@@ -174,6 +176,11 @@ function mapStudentRow(
     jenis_kelamin: (r.jenis_kelamin as string | null) ?? null,
     kelas_id: (r.kelas_id as string | null) ?? null,
     kelas_nama: kelasNama,
+    is_alumni: Boolean(r.is_alumni),
+    angkatan_lulus:
+      r.angkatan_lulus != null && Number.isFinite(Number(r.angkatan_lulus))
+        ? Number(r.angkatan_lulus)
+        : null,
     user_id: (r.user_id as string | null) ?? null,
     nik: (r.nik as string | null) ?? null,
     tempat_lahir: (r.tempat_lahir as string | null) ?? null,
@@ -289,7 +296,7 @@ export async function getAdminStudents(kelasIdFilter?: string | null): Promise<{
   let q = supabase
     .from("students")
     .select(
-      "id, nisn, nama, jenis_kelamin, kelas_id, user_id, nik, tempat_lahir, tanggal_lahir, agama, alamat, no_hp, email, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp_ortu"
+      "id, nisn, nama, jenis_kelamin, kelas_id, is_alumni, angkatan_lulus, user_id, nik, tempat_lahir, tanggal_lahir, agama, alamat, no_hp, email, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp_ortu"
     )
     .order("nama", { ascending: true });
   if (f !== ADMIN_SEMUA_KELAS) {
@@ -310,6 +317,136 @@ export async function getAdminStudents(kelasIdFilter?: string | null): Promise<{
     return mapStudentRow(r as Record<string, unknown>, kid ? kMap.get(kid) ?? null : null);
   });
 
+  return { students: list, error: null };
+}
+
+/** Daftar tahun angkatan yang punya alumni (untuk filter Arsip alumni). */
+export async function listAlumniAngkatanOptions(): Promise<{
+  angkatan: number[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const deny = assertAdmin(auth.user);
+  if (deny) return { angkatan: [], error: deny };
+
+  const { data: rows, error } = await supabase
+    .from("students")
+    .select("angkatan_lulus")
+    .eq("is_alumni", true);
+  if (error) return { angkatan: [], error: error.message };
+
+  const set = new Set<number>();
+  for (const r of rows ?? []) {
+    const a = Number((r as { angkatan_lulus?: unknown }).angkatan_lulus);
+    if (Number.isFinite(a)) set.add(a);
+  }
+  return { angkatan: [...set].sort((a, b) => b - a), error: null };
+}
+
+/**
+ * Rombel kelas XII saat lulus (dari `class_histories` status `lulus`) untuk satu angkatan —
+ * dipakai filter daftar alumni di Arsip alumni.
+ */
+export async function listAlumniRombelLulusOptions(angkatan: number): Promise<{
+  rombel: { id: string; nama: string }[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const deny = assertAdmin(auth.user);
+  if (deny) return { rombel: [], error: deny };
+
+  const ang = Number(angkatan);
+  if (!Number.isFinite(ang)) return { rombel: [], error: "Angkatan tidak valid." };
+
+  const { data: studRows, error: e1 } = await supabase
+    .from("students")
+    .select("id")
+    .eq("is_alumni", true)
+    .eq("angkatan_lulus", ang);
+  if (e1) return { rombel: [], error: e1.message };
+
+  const idList = (studRows ?? []).map((r) => String(r.id)).filter(Boolean);
+  if (idList.length === 0) return { rombel: [], error: null };
+
+  const { data: hists, error: e2 } = await supabase
+    .from("class_histories")
+    .select("kelas_id, kelas:kelas_id ( id, nama, tingkat )")
+    .eq("status", "lulus")
+    .in("student_id", idList);
+  if (e2) return { rombel: [], error: e2.message };
+
+  const m = new Map<string, { id: string; nama: string }>();
+  for (const h of hists ?? []) {
+    const kid = String(h.kelas_id ?? "").trim();
+    if (!kid) continue;
+    const kl = h.kelas as
+      | { id: string; nama: string; tingkat: number | null }
+      | { id: string; nama: string; tingkat: number | null }[]
+      | null;
+    const k = Array.isArray(kl) ? kl[0] : kl;
+    if (!k?.id) continue;
+    const tingkat = Number(k.tingkat);
+    if (Number.isFinite(tingkat) && tingkat !== 12) continue;
+    m.set(String(k.id), { id: String(k.id), nama: String(k.nama ?? "").trim() || "—" });
+  }
+  const rombel = [...m.values()].sort((a, b) =>
+    a.nama.localeCompare(b.nama, "id", { sensitivity: "base" })
+  );
+  return { rombel, error: null };
+}
+
+/** Siswa alumni per angkatan; `rombelLulusId` = filter rombel XII saat lulus (opsional). */
+export async function getAdminAlumniStudents(
+  angkatan: number,
+  rombelLulusId?: string | null
+): Promise<{
+  students: StudentRecord[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const deny = assertAdmin(auth.user);
+  if (deny) return { students: [], error: deny };
+
+  const ang = Number(angkatan);
+  if (!Number.isFinite(ang)) return { students: [], error: "Angkatan tidak valid." };
+
+  const romId = String(rombelLulusId ?? "").trim();
+  let allowedIds: string[] | null = null;
+  if (romId) {
+    const { data: ch, error: eCh } = await supabase
+      .from("class_histories")
+      .select("student_id")
+      .eq("status", "lulus")
+      .eq("kelas_id", romId);
+    if (eCh) return { students: [], error: eCh.message };
+    allowedIds = [...new Set((ch ?? []).map((r) => String(r.student_id)).filter(Boolean))];
+    if (allowedIds.length === 0) {
+      return { students: [], error: null };
+    }
+  }
+
+  let query = supabase
+    .from("students")
+    .select(
+      "id, nisn, nama, jenis_kelamin, kelas_id, is_alumni, angkatan_lulus, user_id, nik, tempat_lahir, tanggal_lahir, agama, alamat, no_hp, email, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp_ortu"
+    )
+    .eq("is_alumni", true)
+    .eq("angkatan_lulus", ang);
+
+  if (allowedIds) {
+    query = query.in("id", allowedIds);
+  }
+
+  const { data: rows, error } = await query.order("nama", { ascending: true });
+
+  if (error) return { students: [], error: error.message };
+
+  const list: StudentRecord[] = (rows ?? []).map((r) =>
+    mapStudentRow(r as Record<string, unknown>, null)
+  );
   return { students: list, error: null };
 }
 
@@ -410,7 +547,7 @@ export async function getMyProfile(): Promise<{
   let q = supabase
     .from("students")
     .select(
-      "id, nisn, nama, jenis_kelamin, kelas_id, user_id, nik, tempat_lahir, tanggal_lahir, agama, alamat, no_hp, email, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp_ortu"
+      "id, nisn, nama, jenis_kelamin, kelas_id, is_alumni, angkatan_lulus, user_id, nik, tempat_lahir, tanggal_lahir, agama, alamat, no_hp, email, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp_ortu"
     );
 
   if (sid) {

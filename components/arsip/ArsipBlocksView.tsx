@@ -32,12 +32,19 @@ export function ArsipBlocksView({ blocks }: { blocks: ArsipTahunBlok[] }) {
         >
           <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/40">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {b.label}
-              </h2>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {b.judulBlok ?? b.label}
+                </h2>
+                {b.detailBlok ? (
+                  <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    {b.detailBlok}
+                  </p>
+                ) : null}
+              </div>
               {b.is_active ? (
                 <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
-                  Tahun ajaran aktif
+                  Sedang dipakai
                 </span>
               ) : null}
             </div>
@@ -92,7 +99,7 @@ export function ArsipBlocksView({ blocks }: { blocks: ArsipTahunBlok[] }) {
           {b.riwayat.length > 0 ? (
             <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
               <h3 className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Riwayat penempatan (tahun ini)
+                Riwayat pindah kelas
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[400px] text-left text-sm">

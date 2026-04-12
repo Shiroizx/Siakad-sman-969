@@ -41,6 +41,11 @@ const NAV_ADMIN = [
     icon: School,
   },
   {
+    href: "/admin/kelulusan",
+    label: "Kelulusan",
+    icon: GraduationCap,
+  },
+  {
     href: "/admin/kedisiplinan",
     label: "Kedisiplinan",
     icon: ShieldAlert,
@@ -49,6 +54,11 @@ const NAV_ADMIN = [
     href: "/admin/arsip",
     label: "Arsip siswa",
     icon: Archive,
+  },
+  {
+    href: "/admin/arsip-alumni",
+    label: "Arsip alumni",
+    icon: GraduationCap,
   },
   {
     href: "/admin/clustering",
