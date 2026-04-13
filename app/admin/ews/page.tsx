@@ -1,6 +1,6 @@
 "use client";
 
-import { getEwsData, type EwsStudentRow } from "@/app/actions/ews";
+import { getEwsData, getEwsSettings, updateEwsSettings, type EwsStudentRow } from "@/app/actions/ews";
 import { getKelasList, type KelasOption } from "@/app/actions/students";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { ADMIN_SEMUA_KELAS } from "@/lib/admin-kelas-filter";
@@ -77,6 +77,41 @@ export default function AdminEwsPage() {
 
   const [listQuery, setListQuery] = useState("");
   const [listSort, setListSort] = useState<EwsSortPreset>("prioritas");
+
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Load saved settings from Database on client mount
+  useEffect(() => {
+    async function loadSettings() {
+      const { settings } = await getEwsSettings();
+      if (settings) {
+        setBatasAlpa(settings.batas_alpa);
+        setBatasNilaiMerah(settings.batas_nilai_merah);
+        setBatasPelanggaran(settings.batas_pelanggaran);
+      }
+    }
+    void loadSettings();
+  }, []);
+
+  async function handleSaveSettings() {
+    setSavingSettings(true);
+    setSaveSuccess(false);
+    setLoadError(null);
+    const { error } = await updateEwsSettings({
+      batas_alpa: batasAlpa,
+      batas_nilai_merah: batasNilaiMerah,
+      batas_pelanggaran: batasPelanggaran,
+    });
+    setSavingSettings(false);
+    
+    if (!error) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      setLoadError(error);
+    }
+  }
 
   const loadKelas = useCallback(async () => {
     const kelRes = await getKelasList();
@@ -280,6 +315,22 @@ export default function AdminEwsPage() {
             suffix="poin"
           />
         </section>
+
+        <div className="mb-8 mt-2 flex flex-col sm:flex-row items-center gap-3 justify-end">
+          {saveSuccess && (
+            <span className="text-sm font-medium animate-pulse text-emerald-600 dark:text-emerald-400">
+              Pengaturan tersimpan ke server!
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleSaveSettings}
+            disabled={savingSettings}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white shadow-md shadow-indigo-900/25 transition hover:bg-indigo-500 disabled:opacity-50"
+          >
+            {savingSettings ? "Menyimpan…" : "Simpan Pengaturan"}
+          </button>
+        </div>
 
         {kelasLoaded && kelasFilter && !kelasListError ? (
           <AdminListToolbar

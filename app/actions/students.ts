@@ -1,6 +1,7 @@
 "use server";
 
 import { ADMIN_SEMUA_KELAS } from "@/lib/admin-kelas-filter";
+import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -542,6 +543,9 @@ export async function getMyProfile(): Promise<{
   if (deny) return { profile: null, error: deny };
 
   const user = auth.user!;
+  const alumniDeny = await denyIfSiswaAlumni(supabase, user);
+  if (alumniDeny) return { profile: null, error: alumniDeny };
+
   const sid = String(user.user_metadata?.student_id ?? "").trim();
 
   let q = supabase
@@ -582,6 +586,9 @@ export async function updateMyProfile(
   if (deny) return { error: deny };
 
   const user = auth.user!;
+  const alumniDeny = await denyIfSiswaAlumni(supabase, user);
+  if (alumniDeny) return { error: alumniDeny };
+
   const sid = String(user.user_metadata?.student_id ?? "").trim();
 
   const payload: Record<string, string | null> = {};

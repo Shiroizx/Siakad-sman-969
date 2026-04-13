@@ -1,6 +1,7 @@
 "use server";
 
 import { resolveActiveAcademicYearId } from "@/app/actions/academic-years";
+import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
 import type { User } from "@supabase/supabase-js";
@@ -527,6 +528,9 @@ export async function getMyGradesForYear(
   if (deny) return { rows: [], error: deny };
 
   const user = auth.user!;
+  const alumniDeny = await denyIfSiswaAlumni(supabase, user);
+  if (alumniDeny) return { rows: [], error: alumniDeny };
+
   const sid = String(user.user_metadata?.student_id ?? "").trim();
   let st = supabase.from("students").select("id").limit(1);
   st = sid ? st.eq("id", sid) : st.eq("user_id", user.id);

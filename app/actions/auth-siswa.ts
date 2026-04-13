@@ -48,7 +48,7 @@ export async function loginSiswa(
 
   const { data: row, error: qErr } = await admin
     .from("students")
-    .select("id, nisn, nama, tanggal_lahir")
+    .select("id, nisn, nama, tanggal_lahir, is_alumni")
     .eq("nisn", nisn)
     .maybeSingle();
 
@@ -117,5 +117,5 @@ export async function loginSiswa(
   }
 
   revalidatePath("/", "layout");
-  redirect("/siswa/beranda");
+  redirect(Boolean(row.is_alumni) ? "/siswa/arsip-alumni" : "/siswa/beranda");
 }

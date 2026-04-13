@@ -6,6 +6,7 @@ import {
   type HasilJurusan,
   type HasilProfilJurusan,
 } from "@/lib/peminatan/profile-matching";
+import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -37,6 +38,10 @@ export async function listStudentsForPeminatan(): Promise<{
   if (!auth.user) return { students: [], error: "Anda belum masuk." };
 
   if (isSiswaUser(auth.user)) {
+    const alumniDeny = await denyIfSiswaAlumni(supabase, auth.user);
+    if (alumniDeny) {
+      return { students: [], error: alumniDeny };
+    }
     const ownId = await resolveOwnStudentId(supabase, auth.user);
     if (!ownId) {
       return {
@@ -106,6 +111,18 @@ export async function calculateProfileMatching(studentId: string): Promise<{
   }
 
   if (isSiswaUser(auth.user)) {
+    const alumniDeny = await denyIfSiswaAlumni(supabase, auth.user);
+    if (alumniDeny) {
+      return {
+        studentNama: null,
+        studentNisn: null,
+        hasil: [],
+        rekomendasiUtama: null,
+        hasilBahasa: [],
+        rekomendasiBahasaUtama: null,
+        error: alumniDeny,
+      };
+    }
     const ownId = await resolveOwnStudentId(supabase, auth.user);
     if (!ownId || ownId !== String(studentId)) {
       return {

@@ -1,3 +1,4 @@
+import { isSiswaUser } from "@/lib/auth/siswa";
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
@@ -5,6 +6,8 @@ import { type NextRequest, NextResponse } from "next/server";
 export type SessionUpdateResult = {
   response: NextResponse;
   user: User | null;
+  /** Hanya bermakna bila `user` adalah akun portal siswa (`is_alumni` dari `students`). */
+  siswaIsAlumni: boolean;
 };
 
 export async function updateSession(
@@ -44,5 +47,14 @@ export async function updateSession(
     data: { user },
   } = await supabase.auth.getUser();
 
-  return { response: supabaseResponse, user };
+  let siswaIsAlumni = false;
+  if (user && isSiswaUser(user)) {
+    const sid = String(user.user_metadata?.student_id ?? "").trim();
+    let st = supabase.from("students").select("is_alumni").limit(1);
+    st = sid ? st.eq("id", sid) : st.eq("user_id", user.id);
+    const { data: stRow } = await st.maybeSingle();
+    siswaIsAlumni = Boolean(stRow?.is_alumni);
+  }
+
+  return { response: supabaseResponse, user, siswaIsAlumni };
 }

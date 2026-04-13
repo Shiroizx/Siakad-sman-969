@@ -31,6 +31,11 @@ const NAV_ADMIN = [
     icon: Users,
   },
   {
+    href: "/admin/kelas",
+    label: "Master Kelas",
+    icon: School,
+  },
+  {
     href: "/admin/akademik",
     label: "Akademik",
     icon: BookOpen,
@@ -110,6 +115,15 @@ const NAV_SISWA = [
   },
 ] as const;
 
+/** Portal siswa untuk akun yang sudah `is_alumni` (hanya arsip lengkap). */
+const NAV_SISWA_ALUMNI = [
+  {
+    href: "/siswa/arsip-alumni",
+    label: "Arsip alumni saya",
+    icon: GraduationCap,
+  },
+] as const;
+
 type SidebarProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -118,24 +132,40 @@ type SidebarProps = {
 export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const pathname = usePathname();
   const [siswaPortal, setSiswaPortal] = useState(false);
+  const [siswaAlumni, setSiswaAlumni] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
-    void supabase.auth.getUser().then(({ data }) => {
-      setSiswaPortal(isSiswaUser(data.user));
-    });
+    const apply = async () => {
+      const { data } = await supabase.auth.getUser();
+      const u = data.user;
+      const portal = isSiswaUser(u);
+      setSiswaPortal(portal);
+      if (!portal || !u) {
+        setSiswaAlumni(false);
+        return;
+      }
+      const sid = String(u.user_metadata?.student_id ?? "").trim();
+      let q = supabase.from("students").select("is_alumni").limit(1);
+      q = sid ? q.eq("id", sid) : q.eq("user_id", u.id);
+      const { data: row } = await q.maybeSingle();
+      setSiswaAlumni(Boolean(row?.is_alumni));
+    };
+    void apply();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
-      void supabase.auth.getUser().then(({ data }) => {
-        setSiswaPortal(isSiswaUser(data.user));
-      });
+      void apply();
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  const nav = siswaPortal ? NAV_SISWA : NAV_ADMIN;
-  const homeHref = siswaPortal ? "/siswa/beranda" : "/";
+  const nav = siswaPortal ? (siswaAlumni ? NAV_SISWA_ALUMNI : NAV_SISWA) : NAV_ADMIN;
+  const homeHref = siswaPortal
+    ? siswaAlumni
+      ? "/siswa/arsip-alumni"
+      : "/siswa/beranda"
+    : "/";
 
   return (
     <aside
@@ -200,7 +230,9 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
       <div className="border-t border-slate-800/80 p-3 text-[11px] text-slate-500 dark:border-slate-800">
         <p className="px-2 leading-relaxed">
           {siswaPortal
-            ? "Akses peminatan dan informasi untuk siswa."
+            ? siswaAlumni
+              ? "Akun alumni: hanya arsip akademik yang dapat diakses."
+              : "Akses peminatan dan informasi untuk siswa."
             : "Navigasi ringkas untuk modul EWS, clustering, dan peminatan."}
         </p>
       </div>

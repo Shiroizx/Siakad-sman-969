@@ -1,6 +1,7 @@
 "use server";
 
 import { resolveActiveAcademicYearId } from "@/app/actions/academic-years";
+import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
 import type { User } from "@supabase/supabase-js";
@@ -245,6 +246,9 @@ export async function getMyDisciplineRecord(
   if (deny) return { data: null, error: deny };
 
   const user = auth.user!;
+  const alumniDeny = await denyIfSiswaAlumni(supabase, user);
+  if (alumniDeny) return { data: null, error: alumniDeny };
+
   const sid = String(user.user_metadata?.student_id ?? "").trim();
 
   let st = supabase.from("students").select("id").limit(1);

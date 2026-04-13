@@ -2,6 +2,7 @@
 
 import { resolveActiveAcademicYearId } from "@/app/actions/academic-years";
 import { ADMIN_SEMUA_KELAS } from "@/lib/admin-kelas-filter";
+import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
 
@@ -231,6 +232,11 @@ export async function getMyEwsData(): Promise<{
     return { row: null, error: "Hanya untuk akun siswa." };
   }
 
+  const alumniDeny = await denyIfSiswaAlumni(supabase, user);
+  if (alumniDeny) {
+    return { row: null, error: alumniDeny };
+  }
+
   const sid = String(user.user_metadata?.student_id ?? "").trim();
   let st = supabase
     .from("students")
@@ -329,4 +335,57 @@ export async function getMyEwsData(): Promise<{
   };
 
   return { row, error: null };
+}
+
+export type EwsSettingsPayload = {
+  batas_alpa: number;
+  batas_nilai_merah: number;
+  batas_pelanggaran: number;
+};
+
+export async function getEwsSettings(): Promise<{
+  settings: EwsSettingsPayload | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ews_settings")
+    .select("batas_alpa, batas_nilai_merah, batas_pelanggaran")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getEwsSettings error:", error);
+    return { settings: null, error: "Gagal memuat pengaturan EWS dari database." };
+  }
+
+  return { settings: data as EwsSettingsPayload, error: null };
+}
+
+export async function updateEwsSettings(
+  payload: EwsSettingsPayload
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+    
+    // Ensure the row exists or gets updated
+    const { error } = await supabase
+      .from("ews_settings")
+      .upsert({
+        id: 1,
+        batas_alpa: payload.batas_alpa,
+        batas_nilai_merah: payload.batas_nilai_merah,
+        batas_pelanggaran: payload.batas_pelanggaran,
+      });
+
+    if (error) {
+      console.error("updateEwsSettings error:", error);
+      return { error: "Gagal menyimpan pengaturan EWS." };
+    }
+
+    return { error: null };
+  } catch (err) {
+    console.error(err);
+    return { error: "Kesalahan internal." };
+  }
 }

@@ -2,6 +2,7 @@
 
 import { resolveActiveAcademicYearId } from "@/app/actions/academic-years";
 import { ARSIP_OTOMAT_NAMA, isAlumniArchiveYearNama } from "@/lib/arsip-constants";
+import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import type { GradeRow } from "@/app/actions/akademik";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/server";
@@ -566,6 +567,17 @@ export async function getMyArsipOverview(): Promise<{
     };
   }
 
+  const alumniDeny = await denyIfSiswaAlumni(supabase, auth.user);
+  if (alumniDeny) {
+    return {
+      blocks: [],
+      activeAcademicYearId: null,
+      error: alumniDeny,
+      isAlumni: true,
+      angkatanLulus: null,
+    };
+  }
+
   const { id: studentId, error: sidErr } = await resolveSiswaStudentId(
     supabase,
     auth.user!
@@ -745,6 +757,97 @@ export async function getStudentAlumniArsipOverview(studentId: string): Promise<
   const { blocks, activeAcademicYearId, error } = await buildArchiveBlocks(
     supabase,
     sid,
+    "admin_alumni_full"
+  );
+  const ang = stu.angkatan_lulus;
+  return {
+    blocks,
+    activeAcademicYearId,
+    siswaNama: String(stu.nama ?? ""),
+    siswaNisn: String(stu.nisn ?? ""),
+    angkatanLulus: ang != null && Number.isFinite(Number(ang)) ? Number(ang) : null,
+    error,
+  };
+}
+
+/** Arsip alumni lengkap untuk siswa yang login (setara admin Arsip alumni, hanya data sendiri). */
+export async function getMyAlumniArsipOverview(): Promise<{
+  blocks: ArsipTahunBlok[];
+  activeAcademicYearId: string | null;
+  siswaNama: string | null;
+  siswaNisn: string | null;
+  angkatanLulus: number | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const deny = assertSiswa(auth.user);
+  if (deny) {
+    return {
+      blocks: [],
+      activeAcademicYearId: null,
+      siswaNama: null,
+      siswaNisn: null,
+      angkatanLulus: null,
+      error: deny,
+    };
+  }
+
+  const user = auth.user!;
+  const { id: studentId, error: sidErr } = await resolveSiswaStudentId(
+    supabase,
+    user
+  );
+  if (sidErr || !studentId) {
+    return {
+      blocks: [],
+      activeAcademicYearId: null,
+      siswaNama: null,
+      siswaNisn: null,
+      angkatanLulus: null,
+      error: sidErr ?? "Siswa tidak ditemukan.",
+    };
+  }
+
+  const { data: stu, error: e1 } = await supabase
+    .from("students")
+    .select("id, nama, nisn, is_alumni, angkatan_lulus")
+    .eq("id", studentId)
+    .maybeSingle();
+  if (e1) {
+    return {
+      blocks: [],
+      activeAcademicYearId: null,
+      siswaNama: null,
+      siswaNisn: null,
+      angkatanLulus: null,
+      error: e1.message,
+    };
+  }
+  if (!stu) {
+    return {
+      blocks: [],
+      activeAcademicYearId: null,
+      siswaNama: null,
+      siswaNisn: null,
+      angkatanLulus: null,
+      error: "Siswa tidak ditemukan.",
+    };
+  }
+  if (!Boolean(stu.is_alumni)) {
+    return {
+      blocks: [],
+      activeAcademicYearId: null,
+      siswaNama: String(stu.nama ?? ""),
+      siswaNisn: String(stu.nisn ?? ""),
+      angkatanLulus: null,
+      error: "Menu ini hanya untuk alumni. Gunakan Arsip saya di portal siswa.",
+    };
+  }
+
+  const { blocks, activeAcademicYearId, error } = await buildArchiveBlocks(
+    supabase,
+    studentId,
     "admin_alumni_full"
   );
   const ang = stu.angkatan_lulus;

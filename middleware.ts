@@ -4,6 +4,7 @@ import { updateSession } from "@/utils/supabase/middleware";
 
 const ADMIN_LOGIN = "/login";
 const SISWA_LOGIN = "/siswa/login";
+const SISWA_ALUMNI_HOME = "/siswa/arsip-alumni";
 
 function withCookies(from: NextResponse, to: NextResponse) {
   from.cookies.getAll().forEach((c) => {
@@ -24,6 +25,12 @@ function isSiswaArea(pathname: string) {
   return pathname.startsWith("/siswa") && pathname !== SISWA_LOGIN;
 }
 
+function isSiswaAlumniAllowedPath(pathname: string) {
+  return (
+    pathname === SISWA_ALUMNI_HOME || pathname.startsWith(`${SISWA_ALUMNI_HOME}/`)
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -31,7 +38,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { response, user } = await updateSession(request);
+  const { response, user, siswaIsAlumni } = await updateSession(request);
   const siswa = isSiswaUser(user);
 
   if (!user && needsAuth(pathname)) {
@@ -47,16 +54,34 @@ export async function middleware(request: NextRequest) {
 
   if (user) {
     if (pathname === ADMIN_LOGIN || pathname === SISWA_LOGIN) {
-      const target = siswa ? "/siswa/beranda" : "/";
+      const target = siswa
+        ? siswaIsAlumni
+          ? SISWA_ALUMNI_HOME
+          : "/siswa/beranda"
+        : "/";
       const url = request.nextUrl.clone();
       url.pathname = target;
       url.searchParams.delete("next");
       return withCookies(response, NextResponse.redirect(url));
     }
 
+    if (siswa && siswaIsAlumni && isSiswaArea(pathname) && !isSiswaAlumniAllowedPath(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = SISWA_ALUMNI_HOME;
+      url.searchParams.delete("next");
+      return withCookies(response, NextResponse.redirect(url));
+    }
+
+    if (siswa && !siswaIsAlumni && isSiswaAlumniAllowedPath(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/siswa/arsip";
+      url.searchParams.delete("next");
+      return withCookies(response, NextResponse.redirect(url));
+    }
+
     if (siswa && (pathname === "/" || pathname.startsWith("/admin"))) {
       const url = request.nextUrl.clone();
-      url.pathname = "/siswa/beranda";
+      url.pathname = siswaIsAlumni ? SISWA_ALUMNI_HOME : "/siswa/beranda";
       return withCookies(response, NextResponse.redirect(url));
     }
   }
