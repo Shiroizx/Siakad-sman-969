@@ -4,11 +4,13 @@ import {
   AlertTriangle,
   Archive,
   BookOpen,
+  ClipboardList,
   GraduationCap,
   LayoutDashboard,
   LayoutGrid,
   School,
   ShieldAlert,
+  UserCheck,
   UserCog,
   Users,
 } from "lucide-react";
@@ -16,6 +18,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { isGuruBkUser } from "@/lib/auth/guru-bk";
+import { isWaliKelasUser } from "@/lib/auth/wali-kelas";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/client";
 
@@ -64,6 +68,16 @@ const NAV_ADMIN = [
     href: "/admin/arsip-alumni",
     label: "Arsip alumni",
     icon: GraduationCap,
+  },
+  {
+    href: "/admin/wali-kelas",
+    label: "Wali Kelas",
+    icon: UserCheck,
+  },
+  {
+    href: "/admin/guru-bk",
+    label: "Guru BK",
+    icon: ClipboardList,
   },
   {
     href: "/admin/clustering",
@@ -115,6 +129,59 @@ const NAV_SISWA = [
   },
 ] as const;
 
+/** Nav untuk portal wali kelas */
+const NAV_WALI_KELAS = [
+  {
+    href: "/wali-kelas/ews",
+    label: "EWS Kelas Saya",
+    icon: AlertTriangle,
+  },
+  {
+    href: "/wali-kelas/students",
+    label: "Data Siswa",
+    icon: Users,
+  },
+  {
+    href: "/wali-kelas/akademik",
+    label: "Akademik",
+    icon: BookOpen,
+  },
+  {
+    href: "/wali-kelas/kedisiplinan",
+    label: "Kedisiplinan",
+    icon: ShieldAlert,
+  },
+  {
+    href: "/wali-kelas/peminatan",
+    label: "Cek Peminatan",
+    icon: GraduationCap,
+  },
+] as const;
+
+/** Nav untuk portal Guru BK */
+const NAV_GURU_BK = [
+  {
+    href: "/guru-bk/ews",
+    label: "EWS Konseling",
+    icon: AlertTriangle,
+  },
+  {
+    href: "/guru-bk/students",
+    label: "Data Siswa",
+    icon: Users,
+  },
+  {
+    href: "/guru-bk/kedisiplinan",
+    label: "Kedisiplinan",
+    icon: ShieldAlert,
+  },
+  {
+    href: "/guru-bk/catatan",
+    label: "Catatan Konseling",
+    icon: ClipboardList,
+  },
+] as const;
+
 /** Portal siswa untuk akun yang sudah `is_alumni` (hanya arsip lengkap). */
 const NAV_SISWA_ALUMNI = [
   {
@@ -133,13 +200,19 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
   const pathname = usePathname();
   const [siswaPortal, setSiswaPortal] = useState(false);
   const [siswaAlumni, setSiswaAlumni] = useState(false);
+  const [waliKelasPortal, setWaliKelasPortal] = useState(false);
+  const [guruBkPortal, setGuruBkPortal] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     const apply = async () => {
       const { data } = await supabase.auth.getUser();
       const u = data.user;
+      const wali = isWaliKelasUser(u);
+      const bk = isGuruBkUser(u);
       const portal = isSiswaUser(u);
+      setWaliKelasPortal(wali);
+      setGuruBkPortal(bk);
       setSiswaPortal(portal);
       if (!portal || !u) {
         setSiswaAlumni(false);
@@ -160,12 +233,22 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const nav = siswaPortal ? (siswaAlumni ? NAV_SISWA_ALUMNI : NAV_SISWA) : NAV_ADMIN;
-  const homeHref = siswaPortal
-    ? siswaAlumni
-      ? "/siswa/arsip-alumni"
-      : "/siswa/beranda"
-    : "/";
+  const nav = guruBkPortal
+    ? NAV_GURU_BK
+    : waliKelasPortal
+      ? NAV_WALI_KELAS
+      : siswaPortal
+        ? siswaAlumni ? NAV_SISWA_ALUMNI : NAV_SISWA
+        : NAV_ADMIN;
+  const homeHref = guruBkPortal
+    ? "/guru-bk/ews"
+    : waliKelasPortal
+      ? "/wali-kelas/ews"
+      : siswaPortal
+        ? siswaAlumni
+          ? "/siswa/arsip-alumni"
+          : "/siswa/beranda"
+        : "/";
 
   return (
     <aside
@@ -188,7 +271,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
               SIAKAD 969
             </span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-              {siswaPortal ? "Portal siswa" : "Dashboard SPK"}
+              {guruBkPortal ? "Portal Guru BK" : waliKelasPortal ? "Portal Wali Kelas" : siswaPortal ? "Portal siswa" : "Dashboard SPK"}
             </span>
           </div>
         </Link>
@@ -229,11 +312,15 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
 
       <div className="border-t border-slate-800/80 p-3 text-[11px] text-slate-500 dark:border-slate-800">
         <p className="px-2 leading-relaxed">
-          {siswaPortal
-            ? siswaAlumni
-              ? "Akun alumni: hanya arsip akademik yang dapat diakses."
-              : "Akses peminatan dan informasi untuk siswa."
-            : "Navigasi ringkas untuk modul EWS, clustering, dan peminatan."}
+          {guruBkPortal
+            ? "Akses data siswa, EWS, dan catatan konseling."
+            : waliKelasPortal
+              ? "Akses data kelas yang Anda ampu sebagai Wali Kelas."
+              : siswaPortal
+                ? siswaAlumni
+                  ? "Akun alumni: hanya arsip akademik yang dapat diakses."
+                  : "Akses peminatan dan informasi untuk siswa."
+                : "Navigasi ringkas untuk modul EWS, clustering, dan peminatan."}
         </p>
       </div>
     </aside>

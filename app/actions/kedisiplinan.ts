@@ -3,6 +3,8 @@
 import { resolveActiveAcademicYearId } from "@/app/actions/academic-years";
 import { denyIfSiswaAlumni } from "@/lib/auth/siswa-alumni-gate";
 import { isSiswaUser } from "@/lib/auth/siswa";
+import { isWaliKelasUser } from "@/lib/auth/wali-kelas";
+import { isGuruBkUser } from "@/lib/auth/guru-bk";
 import { createClient } from "@/utils/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
@@ -34,6 +36,18 @@ export type MyDisciplineRecord = {
 function assertAdmin(user: User | null): string | null {
   if (!user) return "Anda belum masuk.";
   if (isSiswaUser(user)) return "Akses ditolak.";
+  return null;
+}
+
+function assertWaliKelas(user: User | null): string | null {
+  if (!user) return "Anda belum masuk.";
+  if (!isWaliKelasUser(user)) return "Hanya Wali Kelas yang dapat mengubah absensi.";
+  return null;
+}
+
+function assertGuruBk(user: User | null): string | null {
+  if (!user) return "Anda belum masuk.";
+  if (!isGuruBkUser(user)) return "Hanya Guru BK yang dapat mencatat pelanggaran.";
   return null;
 }
 
@@ -113,7 +127,7 @@ export async function updateAbsensi(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  const deny = assertAdmin(auth.user);
+  const deny = assertWaliKelas(auth.user);
   if (deny) return { error: deny };
 
   const { id: academicYearId, error: ye } = await requireActiveAcademicYearId();
@@ -169,7 +183,7 @@ export async function addPelanggaran(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  const deny = assertAdmin(auth.user);
+  const deny = assertGuruBk(auth.user);
   if (deny) return { error: deny };
 
   const sem = normSemester(semester);

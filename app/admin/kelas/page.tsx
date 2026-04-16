@@ -47,7 +47,8 @@ export default function AdminKelasPage() {
         (r) =>
           r.nama.toLowerCase().includes(q) ||
           r.jurusan.toLowerCase().includes(q) ||
-          String(r.tingkat).includes(q)
+          String(r.tingkat).includes(q) ||
+          (r.wali_kelas_nama || "").toLowerCase().includes(q)
       );
     }
     
@@ -245,6 +246,7 @@ export default function AdminKelasPage() {
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Tingkat</th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Jurusan</th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Rombel</th>
+                      <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Wali Kelas</th>
                       <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">Diisi</th>
                       <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">Kapasitas</th>
                       <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-200">Aksi</th>
@@ -254,7 +256,7 @@ export default function AdminKelasPage() {
                     {displayedRows.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400"
                         >
                           {rows.length === 0
@@ -279,6 +281,16 @@ export default function AdminKelasPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                           {r.rombel}
+                        </td>
+                        <td className="px-4 py-3">
+                          {r.wali_kelas_nama ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-slate-900 dark:text-slate-100">{r.wali_kelas_nama}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{r.wali_kelas_email}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs italic text-slate-400">Belum ditugaskan</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">
                           <span className={`inline-flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold ${

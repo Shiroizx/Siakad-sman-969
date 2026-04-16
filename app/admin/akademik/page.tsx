@@ -169,12 +169,12 @@ export default function AdminAkademikPage() {
               Admin · Akademik
             </p>
             <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
-              Input nilai
+              Data Nilai Siswa
             </h1>
             <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-              Pilih kelas dan siswa, lalu semester. Daftar mapel mengikuti{" "}
-              <strong>tingkat kelas</strong> siswa ({selectedKelas?.tingkat ?? "—"}
-              ). KKM per mapel diatur di master mata pelajaran.
+              Pilih kelas dan siswa, lalu semester untuk melihat nilai akademiknya. 
+              Sebagai Admin, Anda hanya dapat melihat data nilai (Read-Only). 
+              Hanya Wali Kelas yang bertanggung jawab menginput nilai.
             </p>
           </div>
         </header>
@@ -263,17 +263,6 @@ export default function AdminAkademikPage() {
               <option value={2}>Semester 2</option>
             </select>
           </div>
-          <div className="flex items-end">
-            <button
-              type="button"
-              disabled={!studentId || saving || grades.length === 0}
-              onClick={() => void handleSave()}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-500 disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" aria-hidden />
-              {saving ? "Menyimpan…" : "Simpan nilai"}
-            </button>
-          </div>
           </div>
         </div>
 
@@ -284,7 +273,7 @@ export default function AdminAkademikPage() {
                 Nilai mapel
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Kosongkan input untuk menghapus nilai mapel tersebut.
+                Data nilai akademik siswa pada semester terpilih.
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -309,19 +298,13 @@ export default function AdminAkademikPage() {
                         {g.kkm}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-right font-mono text-sm dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-                          value={nilaiInput[g.subject_id] ?? ""}
-                          onChange={(e) =>
-                            setNilaiInput((prev) => ({
-                              ...prev,
-                              [g.subject_id]: e.target.value,
-                            }))
-                          }
-                          placeholder="—"
-                        />
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                          {g.nilai !== null && Number.isFinite(g.nilai) ? (
+                            String(g.nilai)
+                          ) : (
+                            <span className="text-slate-400 font-normal italic">—</span>
+                          )}
+                        </span>
                       </td>
                     </tr>
                   ))}

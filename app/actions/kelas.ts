@@ -10,6 +10,9 @@ export type AdminKelasRecord = {
   rombel: number | null;
   kapasitas_max: number;
   jumlah_siswa: number;
+  wali_kelas_user_id: string | null;
+  wali_kelas_nama: string | null;
+  wali_kelas_email: string | null;
 };
 
 export type AdminKelasPayload = {
@@ -26,9 +29,9 @@ export async function getAdminKelas(): Promise<{
 }> {
   const supabase = await createClient();
 
-  // Memanfaatkan view: kelas_with_siswa_count (seperti pada migration_kelas_jurusan_rombel.sql)
+  // Memanfaatkan view: kelas_with_wali_kelas (disisipkan via migration_wali_kelas.sql)
   const { data, error } = await supabase
-    .from("kelas_with_siswa_count")
+    .from("kelas_with_wali_kelas")
     .select("*")
     .order("tingkat", { ascending: true })
     .order("jurusan", { ascending: true })
