@@ -13,12 +13,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const FAVICON_SVG = "/logo.svg";
+const APPLE_PNG = "/logo.png";
+
 export const metadata: Metadata = {
   title: "SIAKAD 969",
   description: "Dashboard akademik & modul SPK — EWS, clustering, peminatan.",
   icons: {
-    icon: [{ url: "/logo.png", type: "image/png" }],
-    apple: "/logo.png",
+    icon: [{ url: FAVICON_SVG, type: "image/svg+xml", sizes: "any" }],
+    apple: [{ url: APPLE_PNG, type: "image/png", sizes: "180x180" }],
+    shortcut: FAVICON_SVG,
   },
 };
 
