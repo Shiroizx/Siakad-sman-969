@@ -1,6 +1,7 @@
 "use client";
 
 import { logout } from "@/app/actions/auth";
+import { SiteLogo } from "@/components/branding/SiteLogo";
 import { isSiswaUser } from "@/lib/auth/siswa";
 import { createClient } from "@/utils/supabase/client";
 import { LogOut, Menu, UserRound } from "lucide-react";
@@ -57,6 +58,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-900 ring-1 ring-amber-500/30 dark:bg-slate-950 lg:hidden"
+          aria-hidden
+        >
+          <SiteLogo size={32} className="scale-110" />
+        </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             {greeting}

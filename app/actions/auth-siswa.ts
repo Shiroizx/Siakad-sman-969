@@ -1,6 +1,10 @@
 "use server";
 
 import {
+  createSiswaMathChallenge,
+  verifySiswaMathChallenge,
+} from "@/lib/auth/math-captcha-siswa";
+import {
   isIsoDateOnly,
   normalizeNisnInput,
   siswaSyntheticEmail,
@@ -15,10 +19,26 @@ export type LoginSiswaState = {
   error: string | null;
 };
 
+export type SiswaMathChallenge =
+  | { n1: number; n2: number; token: string }
+  | { error: string };
+
+/** Dipanggil dari halaman login siswa untuk menampilkan soal penjumlahan. */
+export async function getSiswaMathChallenge(): Promise<SiswaMathChallenge> {
+  return createSiswaMathChallenge();
+}
+
 export async function loginSiswa(
   _prev: LoginSiswaState,
   formData: FormData
 ): Promise<LoginSiswaState> {
+  const mathToken = String(formData.get("math_token") ?? "").trim();
+  const mathAnswer = String(formData.get("math_answer") ?? "").trim();
+  const captcha = verifySiswaMathChallenge(mathToken, mathAnswer);
+  if (!captcha.ok) {
+    return { error: captcha.message };
+  }
+
   const nisn = normalizeNisnInput(formData.get("nisn"));
   const tanggalLahir = String(formData.get("tanggal_lahir") ?? "").trim();
 

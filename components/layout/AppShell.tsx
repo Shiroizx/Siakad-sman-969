@@ -1,11 +1,13 @@
 "use client";
 
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useIdleTimeout(true);
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-slate-950">

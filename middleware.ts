@@ -19,7 +19,8 @@ function withCookies(from: NextResponse, to: NextResponse) {
 
 function needsAuth(pathname: string) {
   if (pathname === ADMIN_LOGIN || pathname === SISWA_LOGIN) return false;
-  if (pathname === "/") return true;
+  if (pathname === "/") return false;
+  if (pathname === "/beranda") return true;
   if (pathname.startsWith("/admin")) return true;
   if (pathname.startsWith("/siswa")) return true;
   if (pathname.startsWith("/wali-kelas")) return true;
@@ -40,7 +41,7 @@ function isGuruBkArea(pathname: string) {
 }
 
 function isAdminArea(pathname: string) {
-  return pathname === "/" || pathname.startsWith("/admin");
+  return pathname === "/beranda" || pathname.startsWith("/admin");
 }
 
 function isSiswaAlumniAllowedPath(pathname: string) {
@@ -84,7 +85,7 @@ export async function middleware(request: NextRequest) {
       } else if (guruBk) {
         target = GURU_BK_HOME;
       } else {
-        target = "/";
+        target = "/beranda";
       }
       const url = request.nextUrl.clone();
       url.pathname = target;
@@ -138,7 +139,7 @@ export async function middleware(request: NextRequest) {
     // --- Admin/staff biasa tidak boleh masuk area Wali Kelas atau Guru BK ---
     if (!siswa && !waliKelas && !guruBk && (isWaliKelasArea(pathname) || isGuruBkArea(pathname))) {
       const url = request.nextUrl.clone();
-      url.pathname = "/";
+      url.pathname = "/beranda";
       return withCookies(response, NextResponse.redirect(url));
     }
   }

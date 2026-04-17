@@ -14,6 +14,7 @@ import {
   UserCog,
   Users,
 } from "lucide-react";
+import { SiteLogo } from "@/components/branding/SiteLogo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -248,7 +249,7 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
         ? siswaAlumni
           ? "/siswa/arsip-alumni"
           : "/siswa/beranda"
-        : "/";
+        : "/beranda";
 
   return (
     <aside
@@ -263,8 +264,8 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
           onClick={() => onOpenChange(false)}
           className="group flex items-center gap-2 rounded-lg px-1 py-1 transition hover:bg-slate-800/80"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-md transition group-hover:bg-indigo-400">
-            <LayoutDashboard className="h-5 w-5" aria-hidden />
+          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-950 ring-2 ring-amber-500/35 shadow-md transition group-hover:ring-amber-400/50">
+            <SiteLogo size={36} className="scale-110" />
           </span>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-bold tracking-tight text-white">
