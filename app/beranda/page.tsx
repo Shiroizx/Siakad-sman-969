@@ -7,6 +7,7 @@ import {
   BarChart3,
   GraduationCap,
   LayoutDashboard,
+  Trophy,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -69,6 +70,15 @@ const QUICK_LINKS = [
     icon: Users,
     gradient: "from-indigo-600 to-violet-600",
     ring: "ring-indigo-500/20",
+  },
+  {
+    href: "/admin/analisis",
+    title: "Analisis SPK",
+    description:
+      "Perankingan siswa terbaik dengan metode SAW — per kelas dan keseluruhan.",
+    icon: Trophy,
+    gradient: "from-amber-500 to-yellow-500",
+    ring: "ring-amber-500/20",
   },
   {
     href: "/siswa/peminatan",

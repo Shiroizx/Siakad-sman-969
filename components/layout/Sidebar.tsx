@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   Archive,
+  BarChart3,
   BookOpen,
   ClipboardList,
   GraduationCap,
@@ -10,6 +11,7 @@ import {
   LayoutGrid,
   School,
   ShieldAlert,
+  Trophy,
   UserCheck,
   UserCog,
   Users,
@@ -84,6 +86,16 @@ const NAV_ADMIN = [
     href: "/admin/clustering",
     label: "Distribusi Kelas",
     icon: LayoutGrid,
+  },
+  {
+    href: "/admin/analisis",
+    label: "Analisis SPK",
+    icon: Trophy,
+  },
+  {
+    href: "/admin/evaluasi-kelas",
+    label: "Evaluasi Kelas",
+    icon: BarChart3,
   },
   {
     href: "/siswa/peminatan",
@@ -180,6 +192,16 @@ const NAV_GURU_BK = [
     href: "/guru-bk/catatan",
     label: "Catatan Konseling",
     icon: ClipboardList,
+  },
+  {
+    href: "/guru-bk/analisis",
+    label: "Analisis SPK",
+    icon: Trophy,
+  },
+  {
+    href: "/guru-bk/evaluasi-kelas",
+    label: "Evaluasi Kelas",
+    icon: BarChart3,
   },
 ] as const;
 
