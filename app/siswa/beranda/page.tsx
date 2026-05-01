@@ -1,5 +1,6 @@
 import { AlertTriangle, Archive, GraduationCap, Sparkles } from "lucide-react";
 import Link from "next/link";
+import ChatBot from "@/components/siswa/ChatBot";
 
 export default function SiswaBerandaPage() {
   return (
@@ -86,6 +87,8 @@ export default function SiswaBerandaPage() {
           Buka →
         </span>
       </Link>
+
+      <ChatBot />
     </div>
   );
 }
