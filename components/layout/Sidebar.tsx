@@ -275,9 +275,8 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-800/80 bg-slate-900 text-slate-100 shadow-xl transition-transform duration-300 ease-out dark:border-slate-700/80 dark:bg-slate-950 ${
-        open ? "translate-x-0" : "-translate-x-full"
-      } lg:translate-x-0`}
+      className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-800/80 bg-slate-900 text-slate-100 shadow-xl transition-transform duration-300 ease-out dark:border-slate-700/80 dark:bg-slate-950 ${open ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
       aria-label="Navigasi utama"
     >
       <div className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800/80 px-4 dark:border-slate-800">
@@ -313,18 +312,16 @@ export function Sidebar({ open, onOpenChange }: SidebarProps) {
               key={item.href}
               href={item.href}
               onClick={() => onOpenChange(false)}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                active
-                  ? "bg-indigo-500 text-white shadow-md shadow-indigo-900/30 ring-1 ring-indigo-400/40"
-                  : "text-slate-300 hover:bg-slate-800/90 hover:text-white hover:shadow-sm"
-              }`}
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${active
+                ? "bg-indigo-500 text-white shadow-md shadow-indigo-900/30 ring-1 ring-indigo-400/40"
+                : "text-slate-300 hover:bg-slate-800/90 hover:text-white hover:shadow-sm"
+                }`}
             >
               <Icon
-                className={`h-5 w-5 shrink-0 transition-transform duration-200 ${
-                  active
-                    ? "scale-110"
-                    : "text-slate-400 group-hover:scale-105 group-hover:text-indigo-300"
-                }`}
+                className={`h-5 w-5 shrink-0 transition-transform duration-200 ${active
+                  ? "scale-110"
+                  : "text-slate-400 group-hover:scale-105 group-hover:text-indigo-300"
+                  }`}
                 aria-hidden
               />
               <span>{item.label}</span>
